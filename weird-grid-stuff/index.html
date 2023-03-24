@@ -1,0 +1,58 @@
+
+<html>
+	<head>
+	<style>
+		body {
+			background-color:black;
+		}
+	</style>
+		<script>
+			function l() {
+				var ctx=document.querySelector("canvas").getContext("2d");
+				cols=[];
+				var i;
+				ctx.canvas.width=ctx.canvas.height=300;
+				for (i=1;i<=(ctx.canvas.width/10);i++) {
+					cols.push([i,0,1]);
+				}
+				console.log(cols);
+				(function () {
+					var i,z,q;
+					//ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
+					ctx.fillStyle="rgba(0,0,0,0.05)";
+					ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height);
+					
+					ctx.fillStyle="rgba(0,255,0,1)";
+					ctx.strokeStyle="rgba(128,128,128,1)";
+					for (i in cols) {
+						for (z=0;z<cols[i][0];z++) {
+							ctx.lineWidth=2;
+							if (z==cols[i][1]) {
+								ctx.strokeRect(10*i,ctx.canvas.height-(10*z+10),10,10);
+								ctx.fillRect(10*i,ctx.canvas.height-(10*z+10),10,10);
+							}else{
+								ctx.strokeRect(10*i,ctx.canvas.height-(10*z+10),10,10);
+							}
+						}
+					}
+					setTimeout(arguments.callee,0);
+				})();
+				(function () {
+					var i;
+					for (i in cols) {
+						for (z=0;z<=cols[i][0];z++) {
+							cols[i][1] = (cols[i][1]+1)%(cols[i][0]);
+						}
+					}
+					setTimeout(arguments.callee, 100);
+				})()
+			
+			
+			}
+		</script>
+	</head>
+	<body onload="l()">
+		<canvas>
+		</canvas>
+	</body>
+</html>
