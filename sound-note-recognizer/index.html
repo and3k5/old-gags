@@ -1,0 +1,153 @@
+
+<!DOCTYPE>	
+<html>
+	<head>
+		<style>
+			body {
+				margin:0px;
+			}
+			div#controls {
+				height:100px;
+			}
+		</style>
+	</head>
+	<body>
+		<script>
+var context;
+var input,analyser;
+var spectrogram_ctx=document.createElement("canvas").getContext("2d");
+var keys_ctx=document.createElement("canvas").getContext("2d");
+var key_width=40;
+var key_height=80;
+var key_lower=36;
+var key_upper=36+12;
+
+
+var gainMaster,gainInput,gainAudioElement;
+
+var audioElement;
+
+document.body.appendChild(document.createElement("div")).setAttribute("id","controls");
+
+document.body.appendChild(keys_ctx.canvas);
+document.body.appendChild(spectrogram_ctx.canvas);
+
+
+spectrogram_ctx.canvas.style.minHeight="300px";
+keys_ctx.canvas.style.minHeight="300px";
+
+keys_ctx.canvas.width = 600;
+keys_ctx.canvas.height = 100;
+keys_ctx.font="30px sans-serif"
+
+var audioInput;
+
+navigator.getUserMedia = navigator.getUserMedia||navigator.webkitGetUserMedia||navigator.mozGetUserMedia;
+
+//var noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
+function noteFromPitch( frequency ) {
+	return Math.round( 12 * (Math.log( frequency / 440 )/Math.log(2) ) ) + 69;
+}
+
+function frequencyFromNoteNumber( note ) {
+	return 440 * Math.pow(2,(note-69)/12);
+}
+
+function centsOffFromPitch( frequency, note ) {
+	return Math.floor( 1200 * Math.log( frequency / frequencyFromNoteNumber( note ))/Math.log(2) );
+}
+
+function initAudio() {
+	context = new AudioContext();
+	
+	gainMaster=context.createGain();
+	gainMaster.gain.value=0;
+    
+	javascriptNode = context.createScriptProcessor(512, 1, 1);
+	analyser=context.createAnalyser();
+	analyser.smoothingTimeConstant = 0;
+	analyser.fftSize = 512;
+	spectrogram_ctx.canvas.height=analyser.frequencyBinCount;
+	spectrogram_ctx.canvas.width=400;
+	analyser.connect(gainMaster);
+	javascriptNode.onaudioprocess = function () {
+		var array = new Uint8Array(analyser.frequencyBinCount);
+		analyser.getByteFrequencyData(array);
+		drawSpectrogram(array);
+	}
+	javascriptNode.connect(gainMaster);
+	
+	gainMaster.connect(context.destination)
+	
+	audioElement = new Audio("06.Savant - Rise Up - Part_1.wav");
+	audioElement.loop=true;
+	audioElement.preload=true;
+	var con=document.querySelector("div#controls");
+	var toggleBtn = con.appendChild(document.createElement("button"));
+	toggleBtn.textContent="Play/pause sample audio";
+	toggleBtn.onclick=function () {
+		if (audioElement.paused) {
+			audioElement.play();
+			gainMaster.gain.value=1;
+			gainAudioElement.gain.value=1;
+			gainInput.gain.value=0;
+		}else{
+			audioElement.pause();
+			gainMaster.gain.value=0;
+			gainAudioElement.gain.value=0;
+			gainInput.gain.value=1;
+		}
+	}
+	audioInput = context.createMediaElementSource(audioElement);
+	gainAudioElement=context.createGain();
+	gainAudioElement.gain.value=1;
+	audioInput.connect(gainAudioElement)
+	gainAudioElement.connect(analyser)
+
+	
+	navigator.getUserMedia({audio:true}, function (a) {
+			input=context.createMediaStreamSource(a);
+			gainInput=context.createGain();
+			gainInput.gain.value=1;
+			input.connect(gainInput)
+			gainInput.connect(analyser)
+			
+			
+		}, function(e) {
+					alert('Error getting audio');
+					console.log(e);
+        });
+}
+    var x=0;
+    function drawSpectrogram(array) {
+        var highest=0,hid=-1;
+		spectrogram_ctx.drawImage(spectrogram_ctx.canvas,-1,0);
+		for (var i = 0,len=array.length; i < len; i++) {
+            var value = array[i];
+			var v;
+            spectrogram_ctx.fillStyle = "rgb("+[v=value,v,v].join()+")";
+            spectrogram_ctx.fillRect(spectrogram_ctx.canvas.width-1, spectrogram_ctx.canvas.height - i, 1, 1);
+			if (value>128) {
+				hid = highest<value?i:hid;
+				highest = highest<value?value:highest;
+			}
+			var freq=((context.sampleRate/analyser.fftSize)*i);
+        }
+		keys_ctx.canvas.height=spectrogram_ctx.canvas.height;
+		keys_ctx.canvas.width=100;
+		for (var octave=0;octave<6;octave++) {
+			for (var tone=0;tone<12;tone++) {
+				var i=frequencyFromNoteNumber(60+tone+(12*octave))/(context.sampleRate/analyser.fftSize);
+				var v=array[~~i],i2=octave*12+tone;
+				keys_ctx.fillStyle = "rgb("+[255-v,v,0].join()+")";
+				keys_ctx.fillRect(0, keys_ctx.canvas.height - i, keys_ctx.canvas.width, 1);
+			}
+		}
+		x=(x+1)%spectrogram_ctx.canvas.width
+    }
+
+window.addEventListener('load', initAudio );
+		</script>
+	</body>
+</html>
