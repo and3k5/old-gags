@@ -1,0 +1,215 @@
+
+<!DOCTYPE>	
+<html>
+	<head>
+		<style>
+			body {
+				margin:0px;
+			}
+			div#controls {
+				height:100px;
+			}
+			:-webkit-full-screen canvas {
+			  width: 100%;
+			  height: 100%;
+			}
+		</style>
+	</head>
+	<body>
+		<script>
+var context;
+var input,analyser;
+var ctx=document.createElement("canvas").getContext("2d");
+
+
+var gainMaster,gainInput,gainAudioElement;
+
+var audioElement;
+
+document.body.appendChild(document.createElement("div")).setAttribute("id","controls");
+
+document.body.appendChild(ctx.canvas);
+
+var originalW=ctx.canvas.width=600;
+var originalH=ctx.canvas.height=400;
+//ctx.canvas.style.minHeight="300px";
+
+var audioInput;
+
+navigator.getUserMedia = navigator.getUserMedia||navigator.webkitGetUserMedia||navigator.mozGetUserMedia;
+
+Math.sin2 = function (x) {
+	return Math.sin(x*Math.PI/180);
+}
+
+Math.cos2 = function (x) {
+	return Math.cos(x*Math.PI/180);
+}
+
+function initAudio() {
+	context = new AudioContext();
+	
+	gainMaster=context.createGain();
+	gainMaster.gain.value=0;
+    
+	javascriptNode = context.createScriptProcessor(256, 1, 1);
+	analyser=context.createAnalyser();
+	analyser.smoothingTimeConstant=0.8;
+	analyser.fftSize = Math.pow(2,9);
+	//ctx.canvas.height=400;
+	//ctx.canvas.width=analyser.frequencyBinCount*4;
+	analyser.connect(gainMaster);
+	javascriptNode.onaudioprocess = function () {
+		var array = new Uint8Array(analyser.frequencyBinCount);
+		var timedom = new Uint8Array(analyser.fftSize);
+		analyser.getByteFrequencyData(array);
+		analyser.getByteTimeDomainData(timedom);
+		drawSpectrogram(array,timedom);
+	}
+	javascriptNode.connect(gainMaster);
+	
+	gainMaster.connect(context.destination)
+	
+	audioElement = new Audio("Sacco - Goldener Schnitt2.wav");
+	audioElement.loop=true;
+	audioElement.preload=true;
+	var con=document.querySelector("div#controls");
+	var toggleBtn = con.appendChild(document.createElement("button"));
+	toggleBtn.textContent="Play/pause sample audio";
+	toggleBtn.onclick=function () {
+		if (audioElement.paused) {
+			audioElement.play();
+			gainMaster.gain.value=1;
+			gainAudioElement.gain.value=1;
+			gainInput.gain.value=0;
+		}else{
+			audioElement.pause();
+			gainMaster.gain.value=0;
+			gainAudioElement.gain.value=0;
+			gainInput.gain.value=1;
+		}
+	}
+	audioInput = context.createMediaElementSource(audioElement);
+	gainAudioElement=context.createGain();
+	gainAudioElement.gain.value=1;
+	audioInput.connect(gainAudioElement)
+	gainAudioElement.connect(analyser)
+
+	oldValues = new Uint8Array(analyser.frequencyBinCount);
+	var errorCount=0;
+	var options = {audio:true,video:false};
+	gotStream = function (a) {
+		input=context.createMediaStreamSource(a);
+		gainInput=context.createGain();
+		gainInput.gain.value=1;
+		input.connect(gainInput);
+		gainInput.connect(analyser);
+	}
+	gotError=function (e) {
+		alert('Error getting audio');
+		console.log(e);
+		if (e.name=="PermissionDeniedError") {
+			if (errorCount++<3) navigator.getUserMedia(options,gotStream,gotError);
+		}
+	}
+	navigator.getUserMedia(options, gotStream, gotError);
+}
+    var x=0;
+	
+	ctx.canvas.addEventListener("dblclick",function () {
+		ctx.canvas.webkitRequestFullscreen();
+	},false);
+
+    function drawSpectrogram(array,timedom) {
+		var distance = 10;
+		if (document.webkitFullscreenElement == ctx.canvas) {
+			if (ctx.canvas.width!=screen.width) {
+				ctx.canvas.width=screen.width;
+			}
+			if (ctx.canvas.height!=screen.height) {
+				ctx.canvas.height=screen.height;
+			}
+		}else{
+			if (ctx.canvas.width!=originalW) {
+				ctx.canvas.width=originalW;
+			}
+			if (ctx.canvas.height!=originalH) {
+				ctx.canvas.height=originalH;
+			}
+		}
+		var w = ctx.canvas.width;
+		var h = ctx.canvas.height;
+		
+		/*ctx.drawImage(ctx.canvas,-distance*(w/h/(w/h)),-distance*(h/w),
+								w+(distance*(w/h/(w/h)))*2,h+(distance*(h/w))*2);
+		*/
+		
+		
+		var wh = (w+h)/8;
+		
+		var g = ctx.createRadialGradient
+		(w/2,h/2,5,
+		w/2,h/2,wh);
+		g.addColorStop(0, 'green');
+		g.addColorStop(1, 'red');
+        var highest=0,hid=-1;
+		ctx.lineWidth=1;
+		ctx.clearRect(0,0,w,h);
+		ctx.beginPath();
+		ctx.strokeStyle=g;
+		ctx.shadowBlur=10;
+		ctx.shadowColor="red";
+		ctx.fillStyle="grey";
+		var px=w/2,py=h/2;
+		var ox,oy;
+		
+		var mid = Math.min(w,h)/8;
+		
+		for (var i = 0,len=array.length; i < len; i++) {
+			var value = mid+array[i]*0.4;
+			
+			var x=px+Math.cos2((i/len)*360)*value;
+			var y=py+Math.sin2(((i+1)/len)*360)*value;
+			
+			if (i==0) {
+				ctx.moveTo(x,y);
+			}else{
+				ctx.arcTo(ox,oy,x,y,1/len);
+			}
+			
+			ox=x;
+			oy=y;
+        }
+		ctx.closePath();
+		ctx.fill();
+		ctx.stroke();
+		
+		ctx.beginPath();
+		ctx.fillStyle="rgba(255,255,255,0.5)";
+		var fv=0;
+		for (var i = 0,len=timedom.length; i < len; i++) {
+			var value = mid+timedom[i]*0.4;
+			if (i==0) fv=value;
+			var x=px+Math.cos2((i/len)*360)*value;
+			var y=py+Math.sin2(((i+1)/len)*360)*value;
+			
+			if (i==0) {
+				ctx.moveTo(x,y);
+			}else{
+				ctx.arcTo(ox,oy,x,y,1/len);
+			}
+			
+			
+			ox=x;
+			oy=y;
+        }
+		ctx.closePath();
+		ctx.fill();
+		ctx.stroke();
+		
+    }
+
+window.addEventListener('load', initAudio );
+		</script>
+	</body>
+</html>
