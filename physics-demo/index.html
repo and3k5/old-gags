@@ -1,0 +1,334 @@
+
+<!doctype html>
+<html>
+	<head>
+		<title>JS1k, 1k demo submission [ID]</title>
+		<meta charset="utf-8" />
+	</head>
+	<body>
+		<canvas id="c"></canvas>
+		<script>
+			var b = document.body;
+			var c = document.getElementsByTagName('canvas')[0];
+			var a = c.getContext('2d');
+			document.body.clientWidth; // fix bug in webkit: http://qfox.nl/weblog/218
+		</script>
+		<script>
+// start of submission //
+var WIDTH = 13;
+var HEIGHT = 9;
+var BLOCKSIZE=64;
+c.width=BLOCKSIZE*WIDTH;
+c.height=BLOCKSIZE*HEIGHT;
+var CLEARSCREEN=true;
+var CALCULATIONSPEED=1;
+//var vx = Math.cos(rad)*speed;
+//var vy = Math.sin(rad)*speed;
+var grav=0.09;
+var y_gravity=Math.cos(Date.now()/1000)*grav;
+var x_gravity=Math.sin(Date.now()/1000)*grav;
+
+var elastic=0.9;
+var id_count=0;
+function Ball(x,y,angle,speed,r,elastic) {
+	this.id=id_count++;
+	this.x=(x===undefined)?100:x;
+	this.y=(y===undefined)?100:y;
+	var spd=this.speed=(speed===undefined)?2:speed;
+	var rad=(this.angle=(angle===undefined)?(90+45):angle)*Math.PI/180;
+	this.vxb=Math.cos(rad)*spd;
+	this.vyb=Math.sin(rad)*spd;
+	this.r=20;
+	this.elastic=0.5;
+}
+function Launcher(x,y,dir) {
+	this.x=(x===undefined)?0:x;
+	this.y=(y===undefined)?0:y;
+	this.w=BLOCKSIZE;
+	this.h=BLOCKSIZE;
+	this.dir=(dir===undefined)?45:dir;
+	var dis=this;
+	function sh() {
+		var a_x=Math.round(Math.cos(dis.dir*Math.PI/180))*(BLOCKSIZE+22)/2;
+		var a_y=Math.round(Math.sin(dis.dir*Math.PI/180))*(BLOCKSIZE+22)/2;
+		balls.push(new Ball(((dis.x+0.5)*BLOCKSIZE)+a_x,((dis.y+0.5)*BLOCKSIZE)+a_y,dis.dir,2,0.5));	
+	}
+	this.shoot=sh;
+}
+function Box(x,y,elas) {
+	this.x=(x===undefined)?100:x;
+	this.y=(y===undefined)?100:y;
+	this.elastic=(elas===undefined)?1:elas;
+}
+ function dist(a, b, c, d)
+ {
+     return Math.sqrt((a - c) * (a - c) + (b - d) * (b - d));
+ }
+var balls = [];//[new Ball(750,50,135,1,10,0.5)];//{x:20,y:300,vxb:vx,vyb:vy,r:R,elastic:elastic};
+var boxes = [];
+(function () {
+	var i;
+	var tbl=[0,0,1,0,2,0,3,0,4,0,5,0,6,0,7,0,8,0,9,0,10,0,11,0,12,0,
+	0,1,12,1,
+	0,2,12,2,
+	0,3,12,3,
+	0,4,12,4,
+	0,5,12,5,
+	0,6,12,6,
+	0,7,12,7,
+	0,8,1,8,2,8,3,8,4,8,5,8,6,8,7,8,8,8,9,8,10,8,11,8,12,8
+	];
+	for (i=0;i<=tbl.length;i+=2) {
+		boxes.push(new Box(tbl[i],tbl[i+1],0.5));
+		
+	}
+	
+	
+})();
+var launchers = [new Launcher(5,5)];
+var txt="";
+function calc() {
+	var i;
+
+	for (i in balls) {
+		//console.log(i);
+		ball=balls[i];
+		if ((balls[i].y+balls[i].vyb+balls[i].r)>c.height) {
+			balls[i].vyb =-(balls[i].vyb)*balls[i].elastic;
+		}
+		if ((balls[i].x+balls[i].vxb+balls[i].r)>c.width) {
+			balls[i].vxb =-(balls[i].vxb)*balls[i].elastic;
+		}
+		if ((balls[i].y+balls[i].vyb+balls[i].r)<0) {
+			balls[i].vyb =-(balls[i].vyb)*balls[i].elastic;
+		}
+		if ((balls[i].x+balls[i].vxb-balls[i].r)<0) {
+			balls[i].vxb =-(balls[i].vxb)*balls[i].elastic;
+		}
+		var iz;
+		for (iz in balls) {
+			if (balls[iz].id!=balls[i].id) {
+				var next_distance=dist(balls[iz].x,balls[iz].y,(balls[i].x+balls[i].vxb),(balls[i].y+balls[i].vyb));
+				//var next_distance=dist((balls[iz].x+balls[iz].vxb),(balls[iz].y+balls[iz].vyb),(balls[i].x+balls[i].vxb),(balls[i].y+balls[i].vyb));
+				var now_distance=dist(balls[iz].x,balls[iz].y,balls[i].x,balls[i].y);
+				if ((next_distance<(balls[iz].r+balls[i].r))&&(next_distance<now_distance)) {
+					var rad=Math.atan2(balls[i].y-balls[iz].y,balls[i].x-balls[iz].x);
+					var rad2=Math.atan2(balls[iz].y-balls[i].y,balls[iz].x-balls[i].x);
+					var ballsivyb=Math.sin(rad)*(balls[i].speed);
+					var ballsivxb=Math.cos(rad)*(balls[i].speed);
+					var ballsizvyb=Math.sin(rad2)*(balls[iz].speed);
+					var ballsizvxb=Math.cos(rad2)*(balls[iz].speed);
+					var izx,b1=true,b2=true;
+					for (izx in boxes) {
+						if (((balls[i].y+balls[i].vyb+balls[i].r)>(boxes[izx].y*BLOCKSIZE))&&(balls[i].x>(boxes[izx].x*BLOCKSIZE))&&(balls[i].x<(boxes[izx].x*BLOCKSIZE)+BLOCKSIZE)&&(balls[i].y<(boxes[izx].y*BLOCKSIZE)+BLOCKSIZE)) {
+							b1=false;
+						}
+						if (((balls[i].y+balls[i].vyb-balls[i].r)<(boxes[izx].y*BLOCKSIZE)+BLOCKSIZE)&&(balls[i].x>(boxes[izx].x*BLOCKSIZE))&&(balls[i].x<(boxes[izx].x*BLOCKSIZE)+BLOCKSIZE)&&(balls[i].y>(boxes[izx].y*BLOCKSIZE))) {
+							b1=false;
+						}
+						if (((balls[i].x+balls[i].vxb+balls[i].r)>(boxes[izx].x*BLOCKSIZE))&&(balls[i].y>(boxes[izx].y*BLOCKSIZE))&&(balls[i].y<(boxes[izx].y*BLOCKSIZE)+BLOCKSIZE)&&(balls[i].x<(boxes[izx].x*BLOCKSIZE)+BLOCKSIZE)) {
+							b1=false;
+						}
+						if (((balls[i].x+balls[i].vxb-balls[i].r)<(boxes[izx].x*BLOCKSIZE)+BLOCKSIZE)&&(balls[i].y>(boxes[izx].y*BLOCKSIZE))&&(balls[i].y<(boxes[izx].y*BLOCKSIZE)+BLOCKSIZE)&&(balls[i].x>(boxes[izx].x*BLOCKSIZE))) {
+							b1=false;
+						}
+					}
+					
+					for (izx in boxes) {
+						if (((balls[iz].y+balls[iz].vyb+balls[iz].r)>(boxes[izx].y*BLOCKSIZE))&&(balls[iz].x>(boxes[izx].x*BLOCKSIZE))&&(balls[iz].x<(boxes[izx].x*BLOCKSIZE)+BLOCKSIZE)&&(balls[iz].y<(boxes[izx].y*BLOCKSIZE)+BLOCKSIZE)) {
+							b2=false;
+						}
+						if (((balls[iz].y+balls[iz].vyb-balls[iz].r)<(boxes[izx].y*BLOCKSIZE)+BLOCKSIZE)&&(balls[iz].x>(boxes[izx].x*BLOCKSIZE))&&(balls[iz].x<(boxes[izx].x*BLOCKSIZE)+BLOCKSIZE)&&(balls[iz].y>(boxes[izx].y*BLOCKSIZE))) {
+							b2=false;
+						}
+						if (((balls[iz].x+balls[iz].vxb+balls[iz].r)>(boxes[izx].x*BLOCKSIZE))&&(balls[iz].y>(boxes[izx].y*BLOCKSIZE))&&(balls[iz].y<(boxes[izx].y*BLOCKSIZE)+BLOCKSIZE)&&(balls[iz].x<(boxes[izx].x*BLOCKSIZE)+BLOCKSIZE)) {
+							b2=false;
+						}
+						if (((balls[iz].x+balls[iz].vxb-balls[iz].r)<(boxes[izx].x*BLOCKSIZE)+BLOCKSIZE)&&(balls[iz].y>(boxes[izx].y*BLOCKSIZE))&&(balls[iz].y<(boxes[izx].y*BLOCKSIZE)+BLOCKSIZE)&&(balls[iz].x>(boxes[izx].x*BLOCKSIZE))) {
+							b2=false;
+						}
+					}
+					
+					if (b1) {
+						balls[i].vyb=ballsivyb;
+						balls[i].vxb=ballsivxb;
+					}
+					if (b2) {
+						balls[iz].vyb=ballsizvyb;
+						balls[iz].vxb=ballsizvxb;
+					}
+					break;
+				}
+			}
+		}
+		
+		for (iz in boxes) {
+			if (((balls[i].y+balls[i].vyb+balls[i].r)>(boxes[iz].y*BLOCKSIZE))&&(balls[i].x>(boxes[iz].x*BLOCKSIZE))&&(balls[i].x<(boxes[iz].x*BLOCKSIZE)+BLOCKSIZE)&&(balls[i].y<(boxes[iz].y*BLOCKSIZE)+BLOCKSIZE)) {
+				balls[i].vyb =-(balls[i].vyb)*(balls[i].elastic*boxes[iz].elastic);
+				break;
+			}
+			if (((balls[i].y+balls[i].vyb-balls[i].r)<(boxes[iz].y*BLOCKSIZE)+BLOCKSIZE)&&(balls[i].x>(boxes[iz].x*BLOCKSIZE))&&(balls[i].x<(boxes[iz].x*BLOCKSIZE)+BLOCKSIZE)&&(balls[i].y>(boxes[iz].y*BLOCKSIZE))) {
+				balls[i].vyb =-(balls[i].vyb)*(balls[i].elastic*boxes[iz].elastic);
+				break;
+			}
+			if (((balls[i].x+balls[i].vxb+balls[i].r)>(boxes[iz].x*BLOCKSIZE))&&(balls[i].y>(boxes[iz].y*BLOCKSIZE))&&(balls[i].y<(boxes[iz].y*BLOCKSIZE)+BLOCKSIZE)&&(balls[i].x<(boxes[iz].x*BLOCKSIZE)+BLOCKSIZE)) {
+				balls[i].vxb =-(balls[i].vxb)*(balls[i].elastic*boxes[iz].elastic);
+				break;
+			}
+			if (((balls[i].x+balls[i].vxb-balls[i].r)<(boxes[iz].x*BLOCKSIZE)+BLOCKSIZE)&&(balls[i].y>(boxes[iz].y*BLOCKSIZE))&&(balls[i].y<(boxes[iz].y*BLOCKSIZE)+BLOCKSIZE)&&(balls[i].x>(boxes[iz].x*BLOCKSIZE))) {
+				balls[i].vxb =-(balls[i].vxb)*(balls[i].elastic*boxes[iz].elastic);
+				break;
+			}
+		}
+		
+		balls[i].y += balls[i].vyb;
+		balls[i].x += balls[i].vxb;
+		//balls[i].vxb = (balls[i].vxb)*((balls[i].elastic-0.001)/balls[i].elastic);
+		//balls[i].speed = (balls[i].speed)*((balls[i].elastic-0.001)/balls[i].elastic);
+		balls[i].vyb+=y_gravity;
+		balls[i].vxb+=x_gravity;
+		//a.fillRect(balls[i].x,balls[i].y,balls[i].r,balls[i].r);
+	}
+	y_gravity=Math.cos(Date.now()/1000)*grav;
+	x_gravity=Math.sin(Date.now()/1000)*grav;
+}
+function draw1() {
+	a.fillStyle="rgba(255,255,255,0.9)";
+	CLEARSCREEN?(a.fillRect(0,0,c.width,c.height)):new Function("");
+	var i;
+	for (i in balls) {
+		a.fillStyle="rgb("+Math.round(((balls[i].id%4)/4)*255)+","+Math.round(((balls[i].id%8)/8)*255)+","+Math.round(((balls[i].id%12)/12)*255)+")";
+		a.beginPath();
+		a.arc(balls[i].x,balls[i].y,balls[i].r,0,Math.PI*2,false);
+		a.closePath();
+		a.fill();
+	}
+	for (i in boxes) {
+		a.fillStyle="black";
+		with (boxes[i]){
+			a.fillRect(x*BLOCKSIZE,y*BLOCKSIZE,BLOCKSIZE,BLOCKSIZE);
+		}
+		
+	}
+	for (i in launchers) {
+		a.fillStyle="red";
+		with (launchers[i]){
+			a.fillRect(x*BLOCKSIZE,y*BLOCKSIZE,BLOCKSIZE,BLOCKSIZE);
+		}
+		
+	}
+	//a.clearRect(c.width-200,0,200,20);
+	//a.fillText(txt,c.width-a.measureText(txt).width,10);
+}
+function circel(x,y,an,dst) {
+	var _x=x+Math.sin(an*Math.PI/180)*dst;
+	var _y=y+Math.cos(an*Math.PI/180)*dst;
+	return [_x,_y];
+}
+function isInside(x1,y1,w1,h1,x2,y2,w2,h2) {
+	var bool1=x1>x2;
+	var bool2=x1<x2+w2;
+	var bool3=y1>y2;
+	var bool4=y1<y2+h2;
+	return (bool1&&bool2&&bool3&&bool4);
+}
+function detectMouseAt(e) {
+	var i;
+	for (i in boxes) {
+		if (isInside(e.offsetX,e.offsetY,0,0,boxes[i].x,boxes[i].y,BLOCKSIZE,BLOCKSIZE)) return ["boxes",boxes[i]];
+	}
+	for (i in launchers) {
+		if (isInside(e.offsetX,e.offsetY,0,0,launchers[i].x,launchers[i].y,BLOCKSIZE,BLOCKSIZE)) return ["launchers",launchers[i]];
+	}
+}
+var MOUSEDOWN=false;
+var SELECTED=0;
+var MOUSEX=0,MOUSEY=0,MOUSEIN=0;
+var MOVED=0;
+function mdown(e) {
+	//console.log(Math.floor(e.offsetX/BLOCKSIZE),Math.floor(e.offsetY/BLOCKSIZE));
+	var mx=Math.floor(e.offsetX/BLOCKSIZE);
+	var my=Math.floor(e.offsetY/BLOCKSIZE);
+	//console.log(e);
+	var i;
+	for (i in launchers) {
+		if ((launchers[i].x==mx)&&(launchers[i].y==my)) {
+			launchers[i].shoot();
+			console.log("b");
+			return;
+		}
+	}
+	//boxes.push(new Box(mx,my,0.5));
+}
+function kdown(e) {
+	var key=String.fromCharCode(e.keyCode).toUpperCase();
+	var mx=Math.floor(MOUSEX/BLOCKSIZE);
+	var my=Math.floor(MOUSEY/BLOCKSIZE);
+	switch (key) {
+		case "1":
+			var i;
+			for (i in launchers) {
+				if ((launchers[i].x==mx)&&(launchers[i].y==my)) {
+					return;
+				}
+			}
+			for (i in boxes) {
+				if ((boxes[i].x==mx)&&(boxes[i].y==my)) {
+					return;
+				}
+			}
+			boxes.push(new Box(mx,my,0.5));
+			break;
+		case "3":
+			var i;
+			for (i in launchers) {
+				if ((launchers[i].x==mx)&&(launchers[i].y==my)) {
+					launchers.splice(parseInt(i),1);
+					return;
+				}
+			}
+			for (i in boxes) {
+				if ((boxes[i].x==mx)&&(boxes[i].y==my)) {
+					boxes.splice(parseInt(i),1);
+					return;
+				}
+			}
+			break;
+		default:
+			console.log(key);
+		
+		
+		
+	}
+}
+a.fillStyle="white";
+a.fillRect(0,0,c.width,c.height);
+var sf=0;
+(function () {
+	calc();
+	setTimeout(draw1,0);
+	setTimeout(arguments.callee,0);
+})();
+
+c.addEventListener("mousedown",mdown,false);
+c.addEventListener("mousemove",function (e) { MOUSEIN=1;MOUSEX=e.offsetX;MOUSEY=e.offsetY;  },false);
+c.addEventListener("mouseover",function (e) { MOUSEIN=1;MOUSEX=e.offsetX;MOUSEY=e.offsetY;  },false);
+c.addEventListener("mouseout",function (e) { MOUSEIN=0;MOUSEX=e.offsetX;MOUSEY=e.offsetY;  },false);
+window.addEventListener("keydown",kdown,false);
+(function () {
+	launchers[0].dir=Date.now()/1%360;
+	setTimeout(arguments.callee,0);
+	
+})();
+var cnt=0;
+(function () {
+	if (cnt++<30) {
+			launchers[0].shoot();
+			setTimeout(arguments.callee,25);
+	}
+})();
+
+// end of submission //
+		</script>
+	</body>
+</html>
