@@ -1,0 +1,136 @@
+
+<html>
+	<head>
+		<title></title>
+	</head>
+	<body>
+		<script>
+var ctx = document.createElement("canvas").getContext("2d");
+document.body.appendChild(ctx.canvas);
+ctx.canvas.width=500;
+ctx.canvas.height=400;
+
+var now=new Date();
+
+CanvasRenderingContext2D.prototype.drawLine = function (x1,y1,x2,y2) {
+	this.beginPath();
+	this.moveTo(parseInt(x1),parseInt(y1));
+	this.lineTo(parseInt(x2),parseInt(y2));
+	this.stroke();
+}
+
+CanvasRenderingContext2D.prototype._fontSize = 10;
+CanvasRenderingContext2D.prototype._fontFamily = "sans-serif";
+
+Object.defineProperty(CanvasRenderingContext2D.prototype,"fontFamily",{
+	get : function () {
+		return this._fontFamily;
+	},
+	set : function (newvalue) {
+		this._fontFamily = newvalue;
+		this.font=this.fontSize+"px "+newvalue;
+	}
+});
+
+Object.defineProperty(CanvasRenderingContext2D.prototype,"fontSize",{
+	get : function () {
+		return this._fontSize;
+	},
+	set : function (newvalue) {
+		this._fontSize = newvalue;
+		this.font=newvalue+"px "+this.fontFamily;
+	}
+});
+
+CanvasRenderingContext2D.prototype.printValue = function (value,caption,date,percent,y,H,tW) {
+	var	WIDTH		=	this.canvas.width,
+		HEIGHT		=	this.canvas.height,
+		MID			=	WIDTH/2,
+		x			=	MID - (percent*tW),
+		tmpValue	=	(typeof(caption)=="function"?value:(typeof(caption)=="string"?parseInt(caption):caption)),
+		tmpValue2	=	(typeof(caption)=="function"?value:(typeof(caption)=="string"?parseInt(caption):caption)),
+		caption1	=	caption,
+		caption2	=	caption,
+		stop;
+	
+	this.drawLine(x, y , x, y+H)
+	this.drawLine(x+tW, y , x+tW, y+H)
+	this.drawLine(x, y , x+tW, y)
+	this.drawLine(x, y+H ,x+tW , y+H)
+	this.fontSize=15;
+	this.textAlign = "center";
+	this.textBaseline = "middle";
+	this.fillText((typeof(caption)=="function"?caption(value,date):caption),x+tW/2,y+H/2);
+	this.fontSize=12;
+	
+	
+	for (var i=x-tW,stop=-tW;i>stop;i-=tW) {
+		this.drawLine(i, y , i, y+H)
+		this.drawLine(i+tW, y , i+tW, y+H)
+		this.drawLine(i, y , i+tW, y)
+		this.drawLine(i, y+H ,i+tW , y+H)
+		
+		this.fillText((typeof(caption)=="function"?caption(--tmpValue,date):--caption1),i+tW/2,y+H/2);
+	}
+	
+	for (var i=x+tW,stop=WIDTH+tW;i<stop;i+=tW) {
+		this.drawLine(i, y , i, y+H)
+		this.drawLine(i+tW, y , i+tW, y+H)
+		this.drawLine(i, y , i+tW, y)
+		this.drawLine(i, y+H ,i+tW , y+H)
+		
+		this.fillText((typeof(caption)=="function"?caption(++tmpValue2,date):++caption2),i+tW/2,y+H/2);
+	}
+	
+	
+	//console.log(arguments)
+}
+Date.prototype.percentOf = function(d_min,d_max) {
+	return Math.round(((new Date(+this).getTime() - d_min.getTime()) / (d_max.getTime()-d_min.getTime()))*100000)/100000;
+}
+Date.prototype.getDayOfWeek = function (day) {
+	return this.getDate() - (this.getDay() - 1) + (day - 1);
+}
+// year
+// month
+// week
+// day
+// hour
+// minute
+// second
+
+Date.prototype.render = function(ctx) {
+	//console.log(ctx,ctx.canvas);
+	var	WIDTH		=	ctx.canvas.width,
+		HEIGHT		=	ctx.canvas.height,
+		y			=	1,
+		mid			=	WIDTH/2,
+		tilewidth	=	100,
+		tileheight	=	(HEIGHT/6)-1,
+		date		=	this,
+		year,
+		month,
+		day,
+		hour, 
+		minute,
+		second;
+		
+	ctx.printValue(year=date.getFullYear(),year,date,date.percentOf(new Date(year,0),new Date(year+1,0)),y,tileheight,tilewidth);
+	ctx.printValue(month=date.getMonth(),function num2month(m,d) { return ["January","February","March","April","May","June","July","August","September","October","November","December"][m] },date,date.percentOf(new Date(year,month,1),new Date(year,month+1,0)),y+=tileheight+1,tileheight,tilewidth);
+	ctx.printValue(day=date.getDate(),function num2day(v,d) { with (new Date(d)) { setDate(v); return ["Sun","Mon","Tues","Wednes","Thurs","Fri","Satur"][(getDay()%7)]+"day"; } },date,date.percentOf(new Date(year,month,date.getDate()),new Date(year,month,day,23,59,59,999)),y+=tileheight+1,tileheight,tilewidth);
+	ctx.printValue(hour=date.getHours(),hour,date,date.percentOf(new Date(year,month,day,hour,0,0,0),new Date(year,month,day,hour,59,59,999)),y+=tileheight+1,tileheight,tilewidth);
+	ctx.printValue(minute=date.getMinutes(),minute,date,date.percentOf(new Date(year,month,day,hour,minute,0,0),new Date(year,month,day,hour,minute,59,999)),y+=tileheight+1,tileheight,tilewidth);
+	ctx.printValue(second=date.getSeconds(),second,date,date.percentOf(new Date(year,month,day,hour,minute,second,0),new Date(year,month,day,hour,minute,second,999)),y+=tileheight+1,tileheight,tilewidth);
+	
+	ctx.drawLine(mid,0,mid,HEIGHT);
+};
+(function f() {
+	ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
+	(new Date()).render(ctx);
+	requestAnimationFrame(arguments.callee);
+})();
+
+
+		</script>
+	</body>
+</html>
