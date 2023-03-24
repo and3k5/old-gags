@@ -1,0 +1,107 @@
+
+<!DOCTYPE>	
+<html>
+	<head>
+		<title></title>
+	</head>
+	<body>
+		<input list="songs" id="song">
+		<datalist id="songs">
+			<option value="((t*(t>>8|t>>9)&46&t>>8))">
+			<option value="t*(t>>11&t>>8&123&t>>3)">
+			<option value="(t*(t>>9|t>>11))&0x80">
+			<option value="(t%(t>>(t>>9)|t>>11))<<4">
+			<option value="sin(t/6)*200">
+		</datalist>
+		<script>
+function DocumentLoaded() {
+	ctx=document.createElement("canvas").getContext("2d"),
+	document.body.appendChild(ctx.canvas),
+	ctx.canvas.width=300,
+	ctx.canvas.height=400,
+	song.onchange=function () {
+		console.log("Changed");
+		var valid = true;
+		var str = this.value;
+		try {
+			var trymath = SafeMath(str);
+			if (typeof(trymath(0))=="number") {
+				mathexpr = SafeMath(str);
+				console.log("valid");
+			}else{
+				console.log("not valid");
+				throw "error";
+			}
+		}
+		catch (e) {
+			valid=false;
+		}
+		if (valid) {
+			source.disconnect();
+			source = actx.createBufferSource();
+			play();
+		}
+	},
+	render()
+}
+var ctx;
+var cnt=0;
+var w,h;
+
+var actx = new AudioContext();
+var quality = 1;
+var bitrate = 8000*quality;
+var buffer = actx.createBuffer(1, bitrate*30, bitrate);
+
+function SafeMath(scr)
+{
+    var mask = {};
+
+    for (p in this)
+        mask[p] = undefined;
+	
+	scr=scr
+	.replace(/sin/g,"Math.sin")
+	.replace(/cos/g,"Math.cos")
+	.replace(/tan/g,"Math.tan")
+	.replace(/floor/g,"Math.floor")
+	.replace(/ceil/g,"Math.ceil");
+	
+    return ((new Function("t","with(this) { return (" + scr + ") }")).bind(mask));
+}
+var offset = 0;
+var mathexpr = SafeMath("((t*(t>>8|t>>9)&46&t>>8))");
+function play() {
+	for (var channel = 0; channel < buffer.numberOfChannels; channel++) {
+		var nowBuffering = buffer.getChannelData(channel);
+		for (var i = 0; i < buffer.length; i++) {
+			//var t=i;
+			var expr = mathexpr((i/quality)+(offset/quality));
+			nowBuffering[i] = (expr%255)/255;
+		}
+	}
+	offset+=buffer.length;
+	source.buffer = buffer;
+	source.playbackRate.value=1
+	source.connect(actx.destination);
+	source.start();
+	source.onended = function () {
+		//source.disconnect()
+		source = actx.createBufferSource();
+		play();
+	}
+	
+}
+var source = actx.createBufferSource();
+	
+function render() {
+	w = ctx.canvas.width;
+	h = ctx.canvas.height;
+	play();
+	//requestAnimationFrame(render);
+}
+
+window.addEventListener('load',DocumentLoaded);
+		</script>
+	</body>
+</html>
