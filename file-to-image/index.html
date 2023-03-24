@@ -1,0 +1,70 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>
+		Untitled Document
+	</title>
+</head>
+<body>
+	<script>
+		var upload=document.createElement("input");
+		upload.setAttribute("type","file");
+		upload.addEventListener("change",function (e) {
+			e.preventDefault();
+			console.log(0);
+			var reader=new FileReader();
+			reader.addEventListener("load",function (e) {
+				openfile(e.target.result);
+			});
+			reader.readAsArrayBuffer(upload.files[0]);
+		},false);
+		document.body.appendChild(upload);
+		
+		document.body.appendChild(document.createElement("br"));
+		
+		var ctx=document.createElement("canvas").getContext("2d");
+		document.body.appendChild(ctx.canvas);
+		function openfile(ab) {
+			var data=new DataView(ab);
+			var i;
+			var c=ctx.canvas;
+			c.width=c.height=Math.sqrt(data.byteLength);
+			var img=ctx.getImageData(0,0,c.width,c.height);
+			for (i=0;i<data.byteLength;i++) {
+				img.data[i*4+0]=data.getUint8(i);
+				img.data[i*4+1]=data.getUint8(i);
+				img.data[i*4+2]=data.getUint8(i);
+				img.data[i*4+3]=255;
+			}
+			ctx.putImageData(img,0,0);
+			//document.body.appendChild(c);
+		}
+		function getFile(f) {
+			var http = new XMLHttpRequest();
+			http.open("GET",f,true);
+			http.responseType="arraybuffer";
+			http.send();
+			http.addEventListener("load",function (e) {
+				openfile(http.response);
+			},false);
+		}
+		getFile("test.bin");
+			
+		function makeFile(ctx) {
+			var img=ctx.getImageData(0,0,ctx.canvas.width,ctx.canvas.height);
+			var i,cnt=0,str;
+			for (i=0;i<img.data.length;i+=4) {
+				cnt++;
+				str+=String.fromCharCode(img.data[i]);
+			}
+			var b = new ArrayBuffer(cnt);
+			var b2 = new Uint8Array(b);
+			for (i=0;i<cnt;i++) {
+				b2[i]=str[i];
+			}
+			return b;
+		}
+	</script>
+</body>
+</html>
